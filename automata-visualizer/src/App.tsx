@@ -61,6 +61,7 @@ function App() {
                   currentStateId={controller.currentStateId}
                   dfa={definition.dfa}
                   playbackMode={controller.playbackMode}
+                  result={controller.result}
                   reducedMotion={reducedMotion}
                   speed={controller.speed}
                   visitedStates={controller.visitedStates}

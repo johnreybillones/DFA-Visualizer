@@ -276,3 +276,27 @@ export function getPointOnEdge(edge: EdgeLayout, progress: number): Point {
 
   return edge.endPoint;
 }
+
+export function getApproxPathLength(edge: EdgeLayout): number {
+  if (edge.kind === "line") {
+    const dx = edge.endPoint.x - edge.startPoint.x;
+    const dy = edge.endPoint.y - edge.startPoint.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Approximate arc length by sampling points along the curve
+  const samples = 24;
+  let length = 0;
+  let prev = edge.startPoint;
+
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const pt = getPointOnEdge(edge, t);
+    const dx = pt.x - prev.x;
+    const dy = pt.y - prev.y;
+    length += Math.sqrt(dx * dx + dy * dy);
+    prev = pt;
+  }
+
+  return length;
+}

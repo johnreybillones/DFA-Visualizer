@@ -3,6 +3,7 @@ import {
   getEdgeLayouts,
   getGraphBounds,
   getPointOnEdge,
+  getApproxPathLength,
   type EdgeLayout,
 } from "../lib/graphGeometry";
 import {
@@ -13,7 +14,7 @@ import {
   type ViewportTransform,
 } from "../lib/graphViewport";
 import type { PlaybackMode } from "../hooks/useSimulationController";
-import type { DfaGraph, SimulationStep } from "../types/dfa";
+import type { DfaGraph, SimulationResult, SimulationStep } from "../types/dfa";
 
 interface GraphCanvasProps {
   dfa: DfaGraph;
@@ -21,6 +22,7 @@ interface GraphCanvasProps {
   visitedStates: string[];
   activeStep: SimulationStep | null;
   playbackMode: PlaybackMode;
+  result: SimulationResult | null;
   speed: number;
   reducedMotion: boolean;
 }
@@ -45,6 +47,7 @@ export function GraphCanvas({
   visitedStates,
   activeStep,
   playbackMode,
+  result,
   speed,
   reducedMotion,
 }: GraphCanvasProps) {
@@ -53,6 +56,19 @@ export function GraphCanvas({
   const [transform, setTransform] = useState<ViewportTransform>({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
+
+  // Track the previous step to detect node arrival (for pulse ring)
+  const prevStepRef = useRef<SimulationStep | null>(null);
+  const [pulsingNodeId, setPulsingNodeId] = useState<string | null>(null);
+  const pulseTimerRef = useRef<number | null>(null);
+
+  // Track rejected state for shake animation
+  const [rejectedNodeId, setRejectedNodeId] = useState<string | null>(null);
+  const rejectedTimerRef = useRef<number | null>(null);
+
+  // Track accepted state for ring burst animation
+  const [acceptedNodeId, setAcceptedNodeId] = useState<string | null>(null);
+  const acceptedTimerRef = useRef<number | null>(null);
 
   const bounds = getGraphBounds(dfa);
   const layouts = getEdgeLayouts(dfa, { nodeRadius: 30 });
@@ -89,6 +105,44 @@ export function GraphCanvas({
     setTransform(fitGraphToViewport(bounds, fitOptions));
   }, [dfa, viewportSize.height, viewportSize.width]);
 
+  // Detect step changes → fire pulse ring on arrival node
+  useEffect(() => {
+    if (reducedMotion) return;
+    if (activeStep && activeStep !== prevStepRef.current) {
+      prevStepRef.current = activeStep;
+      setPulsingNodeId(activeStep.to);
+      if (pulseTimerRef.current !== null) window.clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = window.setTimeout(() => setPulsingNodeId(null), 600);
+    }
+  }, [activeStep, reducedMotion]);
+
+  // Detect terminal state → fire accepted rings or rejected shake
+  useEffect(() => {
+    if (reducedMotion || !result) return;
+
+    if (playbackMode === "complete" || playbackMode === "validated") {
+      const finalState = result.finalState;
+      if (result.isAccepted) {
+        setAcceptedNodeId(finalState);
+        if (acceptedTimerRef.current !== null) window.clearTimeout(acceptedTimerRef.current);
+        acceptedTimerRef.current = window.setTimeout(() => setAcceptedNodeId(null), 900);
+      } else {
+        setRejectedNodeId(finalState);
+        if (rejectedTimerRef.current !== null) window.clearTimeout(rejectedTimerRef.current);
+        rejectedTimerRef.current = window.setTimeout(() => setRejectedNodeId(null), 500);
+      }
+    }
+  }, [playbackMode, result, reducedMotion]);
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (pulseTimerRef.current !== null) window.clearTimeout(pulseTimerRef.current);
+      if (rejectedTimerRef.current !== null) window.clearTimeout(rejectedTimerRef.current);
+      if (acceptedTimerRef.current !== null) window.clearTimeout(acceptedTimerRef.current);
+    };
+  }, []);
+
   const [controlsIdle, setControlsIdle] = useState(false);
   const controlsTimeoutRef = useRef<number | null>(null);
 
@@ -120,12 +174,15 @@ export function GraphCanvas({
 
   const currentNode = dfa.nodeMap[currentStateId];
 
+  // Compute approximate path length for the active edge (for comet trail sizing)
+  const trailLength = activeLayout ? Math.ceil(getApproxPathLength(activeLayout)) : 0;
+
   return (
-    <section 
+    <section
       className="panel-surface relative flex h-full min-h-[20rem] flex-col overflow-hidden"
       onPointerMove={resetControlsTimer}
     >
-      <div 
+      <div
         className={`absolute right-4 top-4 z-10 flex gap-2 transition-opacity duration-500 ${
           controlsIdle ? "opacity-20 hover:opacity-100" : "opacity-100"
         }`}
@@ -226,6 +283,7 @@ export function GraphCanvas({
       >
         <svg className="h-full w-full" viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}>
           <defs>
+            {/* Standard arrowheads */}
             <marker
               id="arrowhead"
               markerHeight="8"
@@ -246,6 +304,64 @@ export function GraphCanvas({
             >
               <path d="M0,0 L8,4 L0,8 z" fill="var(--color-active-edge)" />
             </marker>
+
+            {/* Layer 1: Token glow filter */}
+            <filter id="token-glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur1" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur2" />
+              <feMerge>
+                <feMergeNode in="blur2" />
+                <feMergeNode in="blur1" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Layer 3: Node glow filter */}
+            <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Layer 5: Accepted node green glow */}
+            <filter id="accept-glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="0 0 0 0 0.6   0 0 0 0 0.9   0 0 0 0 0.7   0 0 0 1 0"
+                result="green"
+              />
+              <feGaussianBlur in="green" stdDeviation="6" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Layer 2: Traveling glow pulse filter */}
+            <filter id="edge-pulse-glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur1" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur2" />
+              <feMerge>
+                <feMergeNode in="blur2" />
+                <feMergeNode in="blur1" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            {/* Layer 2: Traveling glow sweep filter — large dramatic bloom */}
+            <filter id="edge-pulse-glow" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur2" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="26" result="blur3" />
+              <feMerge>
+                <feMergeNode in="blur3" />
+                <feMergeNode in="blur2" />
+                <feMergeNode in="blur1" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
 
           <g
@@ -253,6 +369,7 @@ export function GraphCanvas({
             data-scale={transform.scale}
             transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
           >
+            {/* Initial state arrow */}
             <line
               x1={dfa.nodeMap.q0.x - 70}
               x2={dfa.nodeMap.q0.x - 34}
@@ -263,6 +380,7 @@ export function GraphCanvas({
               strokeWidth="2"
             />
 
+            {/* ── Edges ── */}
             {layouts.map((layout) => {
               const isActive =
                 activeLayout?.sourceId === layout.sourceId &&
@@ -271,21 +389,59 @@ export function GraphCanvas({
 
               return (
                 <g key={layout.key}>
+                  {/* Base edge path */}
                   <path
                     d={layout.path}
                     fill="none"
                     markerEnd={isActive ? "url(#arrowhead-active)" : "url(#arrowhead)"}
                     stroke={isActive ? "var(--color-active-edge)" : "var(--color-outline-strong)"}
-                    strokeWidth={isActive ? 3 : 2}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                    style={{ transition: "stroke 200ms ease, stroke-width 200ms ease" }}
                   />
+
+                  {/* Layer 2: Single glow sweep on active edge only — duration = speed */}
+                  {isActive && !reducedMotion && (
+                    <circle
+                      key={`sweep-${activeStep?.edgeKey}`}
+                      r="11"
+                      fill="var(--color-active-edge)"
+                      filter="url(#edge-pulse-glow)"
+                      opacity="0"
+                    >
+                      <animateMotion
+                        dur={`${speed}ms`}
+                        fill="freeze"
+                        path={layout.path}
+                      />
+                      {/* Bright leading edge → dims as it passes → fades out at target */}
+                      <animate
+                        attributeName="opacity"
+                        values="0;0;1;0.7;0.3;0"
+                        keyTimes="0;0.05;0.2;0.55;0.85;1"
+                        dur={`${speed}ms`}
+                        fill="freeze"
+                      />
+                      {/* Orb grows as it launches then shrinks into target */}
+                      <animate
+                        attributeName="r"
+                        values="8;13;15;12;9;7"
+                        keyTimes="0;0.05;0.2;0.55;0.85;1"
+                        dur={`${speed}ms`}
+                        fill="freeze"
+                      />
+                    </circle>
+                  )}
+
+                  {/* Edge label background */}
                   <rect
                     x={layout.labelPoint.x - 20}
                     y={layout.labelPoint.y - 12}
                     width={40}
                     height={24}
                     fill="var(--color-surface)"
-                    stroke="var(--color-outline-muted)"
-                    strokeWidth="1"
+                    stroke={isActive ? "var(--color-active-edge)" : "var(--color-outline-muted)"}
+                    strokeWidth={isActive ? 1.5 : 1}
+                    style={{ transition: "stroke 200ms ease" }}
                   />
                   <text
                     fill={isActive ? "var(--color-active-edge)" : "var(--color-text)"}
@@ -294,6 +450,7 @@ export function GraphCanvas({
                     textAnchor="middle"
                     x={layout.labelPoint.x}
                     y={layout.labelPoint.y + 5}
+                    style={{ transition: "fill 200ms ease" }}
                   >
                     {layout.label}
                   </text>
@@ -301,16 +458,26 @@ export function GraphCanvas({
               );
             })}
 
+            {/* ── Nodes ── */}
             {Object.values(dfa.nodeMap).map((node) => {
               const isCurrent = node.id === currentStateId;
               const isVisited = visitedStates.includes(node.id);
               const isFinal = dfa.finalNodes.includes(node.id);
               const isStart = node.id === "q0";
+              const isPulsing = pulsingNodeId === node.id;
+              const isRejected = rejectedNodeId === node.id;
+              const isAccepted = acceptedNodeId === node.id;
 
               let label = "";
               if (isStart && isFinal) label = "±";
               else if (isStart) label = "-";
               else if (isFinal) label = "+";
+
+              // Determine node stroke color
+              let strokeColor = "var(--color-outline-strong)";
+              if (isAccepted) strokeColor = "var(--color-success)";
+              else if (isRejected) strokeColor = "var(--color-error)";
+              else if (isCurrent) strokeColor = "var(--color-active-node)";
 
               return (
                 <g
@@ -320,52 +487,144 @@ export function GraphCanvas({
                   data-visited={isVisited ? "true" : "false"}
                   transform={`translate(${node.x} ${node.y})`}
                 >
-                  <circle
-                    cx="0"
-                    cy="0"
-                    r="30"
-                    fill={
-                      isCurrent
-                        ? "var(--color-surface)"
-                        : isVisited
-                          ? "var(--color-visited-node)"
-                          : "var(--color-surface-strong)"
+                  {/* Layer 3: Pulse ring on node arrival */}
+                  {isPulsing && !reducedMotion && (
+                    <circle cx="0" cy="0" r="30" fill="none" stroke="var(--color-active-node)" strokeWidth="2" opacity="0">
+                      <animate attributeName="r" from="30" to="56" dur="550ms" fill="freeze" />
+                      <animate attributeName="opacity" values="0.65;0" dur="550ms" fill="freeze" />
+                      <animate attributeName="stroke-width" from="2" to="0.4" dur="550ms" fill="freeze" />
+                    </circle>
+                  )}
+
+                  {/* Layer 5: Accept double rings */}
+                  {isAccepted && !reducedMotion && (
+                    <>
+                      <circle cx="0" cy="0" r="30" fill="none" stroke="var(--color-success)" strokeWidth="2" opacity="0">
+                        <animate attributeName="r" from="30" to="62" dur="700ms" fill="freeze" />
+                        <animate attributeName="opacity" values="0.7;0" dur="700ms" fill="freeze" />
+                      </circle>
+                      <circle cx="0" cy="0" r="30" fill="none" stroke="var(--color-success)" strokeWidth="1.5" opacity="0">
+                        <animate attributeName="r" from="30" to="48" dur="700ms" begin="100ms" fill="freeze" />
+                        <animate attributeName="opacity" values="0.5;0" dur="700ms" begin="100ms" fill="freeze" />
+                      </circle>
+                    </>
+                  )}
+
+                  {/* Node body — glow applied when current or accepted */}
+                  <g
+                    className={isCurrent && !reducedMotion ? "node-enter" : undefined}
+                    style={isRejected && !reducedMotion ? { animation: "node-reject-shake 400ms ease-out" } : undefined}
+                    filter={
+                      isAccepted && !reducedMotion
+                        ? "url(#accept-glow)"
+                        : isCurrent && !reducedMotion
+                          ? "url(#node-glow)"
+                          : undefined
                     }
-                    stroke={isCurrent ? "var(--color-active-node)" : "var(--color-outline-strong)"}
-                    strokeWidth={isCurrent ? 3 : 2}
-                  />
-                  <text
-                    fill="var(--color-text)"
-                    fontFamily="var(--font-display)"
-                    fontSize="32"
-                    textAnchor="middle"
-                    y="9"
                   >
-                    {label}
-                  </text>
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="30"
+                      fill={
+                        isCurrent
+                          ? "var(--color-surface)"
+                          : isVisited
+                            ? "var(--color-visited-node)"
+                            : "var(--color-surface-strong)"
+                      }
+                      stroke={strokeColor}
+                      strokeWidth={isCurrent || isAccepted || isRejected ? 3 : 2}
+                      style={{
+                        transition: "fill 400ms ease-out, stroke 250ms ease-out, stroke-width 250ms ease-out",
+                      }}
+                    />
+                    <text
+                      fill={
+                        isAccepted
+                          ? "var(--color-success)"
+                          : isRejected
+                            ? "var(--color-error)"
+                            : "var(--color-text)"
+                      }
+                      fontFamily="var(--font-display)"
+                      fontSize="32"
+                      textAnchor="middle"
+                      y="9"
+                      style={{ transition: "fill 250ms ease-out" }}
+                    >
+                      {label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
 
+            {/* ── Layer 1: Traveling token particle ── */}
             {activeLayout && playbackMode === "running" && !reducedMotion ? (
-              <circle
-                key={activeStep?.edgeKey}
-                fill="var(--color-active-edge)"
-                opacity="0.95"
-                r="6"
-              >
-                <animateMotion dur={`${speed}ms`} fill="freeze" path={activeLayout.path} />
-              </circle>
+              <g key={activeStep?.edgeKey}>
+                {/* Comet trail: path that draws itself over the step duration */}
+                <path
+                  d={activeLayout.path}
+                  fill="none"
+                  stroke="var(--color-active-edge)"
+                  strokeWidth="2"
+                  strokeDasharray={`${trailLength} ${trailLength}`}
+                  strokeDashoffset={trailLength}
+                  strokeLinecap="round"
+                  opacity="0"
+                >
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    from={trailLength}
+                    to="0"
+                    dur={`${speed}ms`}
+                    fill="freeze"
+                    calcMode="spline"
+                    keySplines="0.16 1 0.3 1"
+                    keyTimes="0;1"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0;0.35;0.15"
+                    keyTimes="0;0.15;1"
+                    dur={`${speed}ms`}
+                    fill="freeze"
+                  />
+                </path>
+
+                {/* Glowing orb */}
+                <circle
+                  r="7"
+                  fill="var(--color-active-edge)"
+                  filter="url(#token-glow)"
+                  opacity="0.95"
+                >
+                  <animateMotion
+                    dur={`${speed}ms`}
+                    fill="freeze"
+                    path={activeLayout.path}
+                    calcMode="spline"
+                    keySplines="0.16 1 0.3 1"
+                    keyTimes="0;1"
+                  />
+                  {/* Breathing pulse ring */}
+                  <animate attributeName="r" values="6;8.5;6" dur="550ms" repeatCount="indefinite" />
+                </circle>
+              </g>
             ) : tokenPoint ? (
+              /* Paused / stepped token — static glowing dot at end position */
               <circle
                 cx={tokenPoint.x}
                 cy={tokenPoint.y}
+                r="7"
                 fill="var(--color-active-edge)"
-                opacity="0.95"
-                r="6"
+                filter="url(#token-glow)"
+                opacity="0.9"
               />
             ) : null}
 
+            {/* "Active state" label under current node */}
             {currentNode ? (
               <text
                 fill="var(--color-text-muted)"

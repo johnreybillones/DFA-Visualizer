@@ -188,14 +188,42 @@ button:disabled {
   color: var(--color-active-edge);
 }
 
-[data-active="true"] {
-  border-color: var(--color-active-node);
-  background: rgba(255, 255, 255, 0.08);
+[data-consumed="true"] {
+  color: var(--color-text-muted);
+  border-color: var(--color-outline-muted);
+  opacity: 0.38;
+  transition: opacity 350ms ease-out, color 350ms ease-out, border-color 350ms ease-out;
 }
 
-[data-consumed="true"] {
-  color: var(--color-text);
-  border-color: var(--color-outline-strong);
+[data-active="true"] {
+  border-color: var(--color-active-node);
+  background: rgba(255, 255, 255, 0.10);
+  transform: scale(1.14);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, background-color 180ms ease;
+}
+
+/* --- Layer 3: Node state transitions --- */
+@keyframes node-scale-in {
+  from { transform: scale(0.88); }
+  to   { transform: scale(1); }
+}
+
+.node-enter {
+  animation: node-scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* --- Layer 5: Terminal reject shake --- */
+@keyframes node-reject-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-5px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-1px); }
+}
+
+.node-rejected {
+  animation: node-reject-shake 400ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

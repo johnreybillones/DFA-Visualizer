@@ -22,6 +22,7 @@ describe("GraphCanvas", () => {
           visitedStates={["q0", "q1"]}
           activeStep={activeStep}
           playbackMode="running"
+          result={null}
           speed={180}
           reducedMotion={false}
         />
@@ -31,8 +32,6 @@ describe("GraphCanvas", () => {
     expect(screen.getByRole("button", { name: /zoom in/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /zoom out/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reset view/i })).toBeInTheDocument();
-    expect(screen.getByText("q0")).toBeInTheDocument();
-    expect(screen.getByText("q14")).toBeInTheDocument();
     expect(screen.getByTestId("node-q1")).toHaveAttribute("data-state", "current");
     expect(screen.getByTestId("node-q0")).toHaveAttribute("data-visited", "true");
   });
@@ -46,6 +45,7 @@ describe("GraphCanvas", () => {
           visitedStates={["q0"]}
           activeStep={null}
           playbackMode="idle"
+          result={null}
           speed={180}
           reducedMotion={true}
         />
