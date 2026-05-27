@@ -122,9 +122,9 @@ export function ControlPanel({
           <input
             aria-label="Animation speed"
             className="slider-input"
-            max={900}
+            max={3000}
             min={80}
-            step={20}
+            step={100}
             type="range"
             value={speed}
             onChange={(event) => onSpeedChange(Number(event.target.value))}

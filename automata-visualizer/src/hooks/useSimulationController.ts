@@ -18,7 +18,7 @@ interface UseSimulationControllerOptions {
 
 export function useSimulationController({
   definition,
-  initialSpeed = 900,
+  initialSpeed = 2000,
   reducedMotion = false,
 }: UseSimulationControllerOptions) {
   const [input, setInputState] = useState("");

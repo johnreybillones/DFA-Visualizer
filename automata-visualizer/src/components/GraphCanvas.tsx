@@ -3,7 +3,6 @@ import {
   getEdgeLayouts,
   getGraphBounds,
   getPointOnEdge,
-  getApproxPathLength,
   type EdgeLayout,
 } from "../lib/graphGeometry";
 import {
@@ -174,12 +173,9 @@ export function GraphCanvas({
 
   const currentNode = dfa.nodeMap[currentStateId];
 
-  // Compute approximate path length for the active edge (for comet trail sizing)
-  const trailLength = activeLayout ? Math.ceil(getApproxPathLength(activeLayout)) : 0;
-
   return (
     <section
-      className="panel-surface relative flex h-full min-h-[20rem] flex-col overflow-hidden"
+      className="panel-surface relative flex h-full min-h-[20rem] flex-col overflow-hidden select-none"
       onPointerMove={resetControlsTimer}
     >
       <div
@@ -351,10 +347,10 @@ export function GraphCanvas({
               </feMerge>
             </filter>
             {/* Layer 2: Traveling glow sweep filter — large dramatic bloom */}
-            <filter id="edge-pulse-glow" x="-150%" y="-150%" width="400%" height="400%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur2" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="26" result="blur3" />
+            <filter id="edge-pulse-glow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur2" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="36" result="blur3" />
               <feMerge>
                 <feMergeNode in="blur3" />
                 <feMergeNode in="blur2" />
@@ -560,60 +556,60 @@ export function GraphCanvas({
               );
             })}
 
-            {/* ── Layer 1: Traveling token particle ── */}
+            {/* ── Layer 1: Single large glow sweep — 1 pass per step, no trail ── */}
             {activeLayout && playbackMode === "running" && !reducedMotion ? (
               <g key={activeStep?.edgeKey}>
-                {/* Comet trail: path that draws itself over the step duration */}
-                <path
-                  d={activeLayout.path}
-                  fill="none"
-                  stroke="var(--color-active-edge)"
-                  strokeWidth="2"
-                  strokeDasharray={`${trailLength} ${trailLength}`}
-                  strokeDashoffset={trailLength}
-                  strokeLinecap="round"
-                  opacity="0"
-                >
-                  <animate
-                    attributeName="stroke-dashoffset"
-                    from={trailLength}
-                    to="0"
-                    dur={`${speed}ms`}
-                    fill="freeze"
-                    calcMode="spline"
-                    keySplines="0.16 1 0.3 1"
-                    keyTimes="0;1"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    values="0;0.35;0.15"
-                    keyTimes="0;0.15;1"
-                    dur={`${speed}ms`}
-                    fill="freeze"
-                  />
-                </path>
-
-                {/* Glowing orb */}
+                {/* Outer halo: very large, fades as it passes */}
                 <circle
-                  r="7"
+                  r="10"
                   fill="var(--color-active-edge)"
-                  filter="url(#token-glow)"
-                  opacity="0.95"
+                  filter="url(#edge-pulse-glow)"
+                  opacity="0"
                 >
                   <animateMotion
                     dur={`${speed}ms`}
-                    fill="freeze"
+                    fill="remove"
                     path={activeLayout.path}
-                    calcMode="spline"
-                    keySplines="0.16 1 0.3 1"
-                    keyTimes="0;1"
                   />
-                  {/* Breathing pulse ring */}
-                  <animate attributeName="r" values="6;8.5;6" dur="550ms" repeatCount="indefinite" />
+                  <animate
+                    attributeName="opacity"
+                    values="0;0;0.85;0.55;0.2;0"
+                    keyTimes="0;0.04;0.18;0.52;0.82;1"
+                    dur={`${speed}ms`}
+                    fill="remove"
+                  />
+                  <animate
+                    attributeName="r"
+                    values="6;12;22;18;12;8"
+                    keyTimes="0;0.04;0.18;0.52;0.82;1"
+                    dur={`${speed}ms`}
+                    fill="remove"
+                  />
+                </circle>
+
+                {/* Bright inner core */}
+                <circle
+                  r="5"
+                  fill="white"
+                  filter="url(#token-glow)"
+                  opacity="0"
+                >
+                  <animateMotion
+                    dur={`${speed}ms`}
+                    fill="remove"
+                    path={activeLayout.path}
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0;0;1;0.8;0.3;0"
+                    keyTimes="0;0.04;0.18;0.52;0.82;1"
+                    dur={`${speed}ms`}
+                    fill="remove"
+                  />
                 </circle>
               </g>
             ) : tokenPoint ? (
-              /* Paused / stepped token — static glowing dot at end position */
+              /* Paused / stepped — static dot at last arrived node */
               <circle
                 cx={tokenPoint.x}
                 cy={tokenPoint.y}
