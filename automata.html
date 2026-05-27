@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDA Graph Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #131316;
+    --surface2: #1a1a1f;
+    --border: #2a2a35;
+    --accent: #7c6ff7;
+    --accent2: #4dd9ac;
+    --accept-color: #4dd9ac;
+    --reject-color: #f76f6f;
+    --active-color: #fbbf24;
+    --text: #e8e8f0;
+    --text2: #8888a8;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+	
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 1rem 1.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: var(--mono);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .input-zone {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .input-zone input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 7px 14px;
+    width: 220px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-zone input:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { opacity: 0.85; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .canvas-area {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  canvas#graphCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+
+  .trace-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .trace-list::-webkit-scrollbar { width: 4px; }
+  .trace-list::-webkit-scrollbar-track { background: transparent; }
+  .trace-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .trace-item {
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 12px;
+    transition: all 0.3s;
+  }
+
+  .trace-item.active-trace {
+    border-color: var(--active-color);
+    background: rgba(251,191,36,0.08);
+  }
+
+  .trace-item.ok-trace { border-color: rgba(77,217,172,0.4); }
+  .trace-item.fail-trace { border-color: rgba(247,111,111,0.4); }
+
+  .trace-step-label {
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-bottom: 3px;
+  }
+
+  .trace-state {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .trace-desc {
+    color: var(--text2);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .trace-symbol {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent2);
+    margin-top: 3px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .tokens-display {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .token-chip {
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    transition: all 0.3s;
+  }
+
+  .token-chip.active-tok {
+    background: var(--active-color);
+    color: #000;
+    border-color: var(--active-color);
+    font-weight: 700;
+  }
+
+  .token-chip.done-tok {
+    background: rgba(77,217,172,0.15);
+    color: var(--accept-color);
+    border-color: rgba(77,217,172,0.3);
+    text-decoration: line-through;
+    text-decoration-color: var(--accept-color);
+  }
+
+  .token-chip.fail-tok {
+    background: rgba(247,111,111,0.15);
+    color: var(--reject-color);
+    border-color: rgba(247,111,111,0.3);
+  }
+
+  .verdict-pill {
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+
+  .verdict-pill.accept { background: rgba(77,217,172,0.15); color: var(--accept-color); border-color: rgba(77,217,172,0.4); }
+  .verdict-pill.reject { background: rgba(247,111,111,0.15); color: var(--reject-color); border-color: rgba(247,111,111,0.4); }
+  .verdict-pill.idle { background: var(--surface2); color: var(--text2); border-color: var(--border); }
+
+  .step-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .regex-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="brand">PDA Simulator</div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchPDA(1)">PDA 1 â€” Binary</button>
+    <button class="tab-btn" onclick="switchPDA(2)">PDA 2 â€” Alphabet</button>
+  </div>
+  <div class="input-zone">
+    <input type="text" id="strInput" placeholder="enter stringâ€¦" autocomplete="off" onkeydown="if(event.key==='Enter')startSim()"/>
+    <button class="btn primary" onclick="startSim()">Run</button>
+    <button class="btn" onclick="stepForward()" id="btnStep">Step â†’</button>
+    <button class="btn" onclick="resetSim()">Reset</button>
+  </div>
+  <div class="regex-badge" id="regexBadge"></div>
+</header>
+
+<div class="main">
+  <div class="canvas-area">
+    <canvas id="graphCanvas"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-head">Trace Log</div>
+    <div class="trace-list" id="traceList">
+      <div style="color:var(--text2);font-size:12px;padding:8px;font-family:var(--mono);">Enter a string and press Run.</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="tokens-display" id="tokensDisplay"></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--accept-color)"></span>Accept</span>
+      <span><span class="legend-dot" style="background:#7c6ff7"></span>Start</span>
+      <span><span class="legend-dot" style="background:var(--active-color)"></span>Active</span>
+      <span><span class="legend-dot" style="background:var(--reject-color)"></span>Error</span>
+    </div>
+    <div class="verdict-pill idle" id="verdictPill">Idle</div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+
+/* â”€â”€â”€ PDA DEFINITIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+const PDA1 = {
+  regex: "(11+00)(1+0)*(101+111+01)(00*+11*)(1+0+11)",
+  alphabet: new Set(['0','1']),
+  states: [
+    {id:'q0', label:'q0', x:0.05, y:0.5, start:true, accept:false},
+    {id:'q1', label:'q1', x:0.15, y:0.3, start:false, accept:false},
+    {id:'q2', label:'q2', x:0.15, y:0.7, start:false, accept:false},
+    {id:'q3', label:'q3', x:0.27, y:0.5, start:false, accept:false},
+    {id:'q4', label:'q4', x:0.38, y:0.28, start:false, accept:false},
+    {id:'q5', label:'q5', x:0.38, y:0.72, start:false, accept:false},
+    {id:'q6', label:'q6', x:0.5,  y:0.5, start:false, accept:false},
+    {id:'q7', label:'q7', x:0.62, y:0.5, start:false, accept:false},
+    {id:'q8', label:'q8', x:0.72, y:0.28, start:false, accept:true},
+    {id:'q9', label:'q9', x:0.72, y:0.7,  start:false, accept:false},
+    {id:'q10',label:'q10',x:0.83, y:0.5, start:false, accept:true},
+    {id:'q11',label:'q11',x:0.83, y:0.28, start:false, accept:true},
+    {id:'q12',label:'q12',x:0.83, y:0.72, start:false, accept:true},
+    {id:'q13',label:'q13',x:0.93, y:0.5, start:false, accept:true},
+  ],
+  transitions: [
+    {from:'q0', to:'q1', label:'1'},
+    {from:'q0', to:'q2', label:'0'},
+    {from:'q1', to:'q3', label:'1'},
+    {from:'q2', to:'q3', label:'0'},
+    {from:'q1', to:'q1', label:'0,1'},
+    {from:'q3', to:'q4', label:'0,1', curve:-0.3},
+    {from:'q3', to:'q5', label:'0,1', curve:0.3},
+    {from:'q4', to:'q4', label:'0,1'},
+    {from:'q5', to:'q5', label:'0,1'},
+    {from:'q4', to:'q6', label:'1'},
+    {from:'q5', to:'q6', label:'1'},
+    {from:'q6', to:'q7', label:'0'},
+    {from:'q6', to:'q7', label:'1', curve:0.25},
+    {from:'q7', to:'q8', label:'1'},
+    {from:'q7', to:'q9', label:'0', curve:0.2},
+    {from:'q8', to:'q8', label:'0'},
+    {from:'q8', to:'q11', label:'1'},
+    {from:'q8', to:'q10', label:'0,1', curve:-0.3},
+    {from:'q9', to:'q12', label:'1'},
+    {from:'q9', to:'q9', label:'0'},
+    {from:'q10', to:'q13', label:'1'},
+    {from:'q11', to:'q13', label:'0,1', curve:-0.25},
+    {from:'q12', to:'q13', label:'0,1', curve:0.25},
+    {from:'q13', to:'q13', label:'0'},
+  ]
+};
+
+const PDA2 = {
+  regex: "(a+b)(a+b)*(aa+bb)(ab+ba)(a+b)*(aba+baa)",
+  alphabet: new Set(['a','b']),
+  states: [
+    {id:'q0', label:'q0', x:0.05, y:0.5,  start:true,  accept:false},
+    {id:'q1', label:'q1', x:0.16, y:0.5,  start:false, accept:false},
+    {id:'q2', label:'q2', x:0.26, y:0.3,  start:false, accept:false},
+    {id:'q3', label:'q3', x:0.26, y:0.7,  start:false, accept:false},
+    {id:'q4', label:'q4', x:0.37, y:0.5,  start:false, accept:false},
+    {id:'q5', label:'q5', x:0.47, y:0.3,  start:false, accept:false},
+    {id:'q6', label:'q6', x:0.47, y:0.7,  start:false, accept:false},
+    {id:'q7', label:'q7', x:0.58, y:0.5,  start:false, accept:false},
+    {id:'q8', label:'q8', x:0.68, y:0.5,  start:false, accept:false},
+    {id:'q9', label:'q9', x:0.78, y:0.3,  start:false, accept:true},
+    {id:'q10',label:'q10',x:0.78, y:0.7,  start:false, accept:true},
+    {id:'q11',label:'q11',x:0.88, y:0.5,  start:false, accept:true},
+    {id:'q12',label:'q12',x:0.93, y:0.25, start:false, accept:true},
+  ],
+  transitions: [
+    {from:'q0',  to:'q1',  label:'a,b'},
+    {from:'q1',  to:'q2',  label:'a'},
+    {from:'q1',  to:'q3',  label:'b'},
+    {from:'q2',  to:'q2',  label:'a'},
+    {from:'q2',  to:'q4',  label:'a', curve:-0.3},
+    {from:'q3',  to:'q3',  label:'b'},
+    {from:'q3',  to:'q4',  label:'b', curve:0.3},
+    {from:'q4',  to:'q5',  label:'a'},
+    {from:'q4',  to:'q6',  label:'b'},
+    {from:'q5',  to:'q5',  label:'a'},
+    {from:'q5',  to:'q7',  label:'b'},
+    {from:'q6',  to:'q6',  label:'b'},
+    {from:'q6',  to:'q7',  label:'a'},
+    {from:'q7',  to:'q7',  label:'a,b'},
+    {from:'q7',  to:'q8',  label:'a,b', curve:0.2},
+    {from:'q8',  to:'q9',  label:'a'},
+    {from:'q8',  to:'q10', label:'b'},
+    {from:'q9',  to:'q9',  label:'a,b'},
+    {from:'q9',  to:'q11', label:'b'},
+    {from:'q10', to:'q10', label:'a,b'},
+    {from:'q10', to:'q11', label:'a'},
+    {from:'q11', to:'q12', label:'a,b'},
+    {from:'q12', to:'q12', label:'a'},
+  ]
+};
+
+/* â”€â”€â”€ NFA-STYLE SIMULATION (segment-based) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+function simulate(pdaDef, input) {
+  // Returns array of steps: {states:Set, consumed:int, symbol, desc, ok, final}
+  const steps = [];
+  const tok = input.split('');
+  const n = tok.length;
+
+  // Use regex-based segment matching with state tracking
+  const isPDA1 = pdaDef === PDA1;
+  const str = isPDA1 ? input : input.toLowerCase();
+  const toks = str.split('');
+
+  let pos = 0;
+  const path = []; // state ids visited
+
+  if (isPDA1) {
+    return simulatePDA1(toks);
+  } else {
+    return simulatePDA2(toks);
+  }
+}
+
+function simulatePDA1(toks) {
+  const steps = [];
+  const n = toks.length;
+  let pos = 0;
+
+  steps.push({stateId:'q0', consumed:0, symbol:null, desc:'Start state', ok:true, isStart:true});
+
+  // Segment A: 11 or 00
+  if (pos+1 < n && toks[pos]===toks[pos+1] && (toks[pos]==='0'||toks[pos]==='1')) {
+    const sym = toks[pos]+toks[pos+1];
+    const next = toks[pos]==='1' ? 'q1' : 'q2';
+    steps.push({stateId: next, consumed: pos+2, symbol: sym, desc:`Matched "${sym}" â€” start pattern (11 or 00)`, ok:true});
+    pos+=2;
+  } else {
+    const got = toks.slice(pos,pos+2).join('') || '(empty)';
+    steps.push({stateId:'q0', consumed:pos, symbol:toks[pos]||'?', desc:`Expected 11 or 00, got "${got}"`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Segment B: (1+0)* â€” q3 with self-loops, feed into q3
+  const q3entry = pos;
+  if (pos < n) {
+    steps.push({stateId:'q3', consumed:pos, symbol:toks[pos], desc:`Entered (1+0)* loop state`, ok:true});
+  }
+  let loopCount = 0;
+  while (pos < n) {
+    // peek ahead: if next 3 can match 101 or 111, or next 2 can match 01, stop loop
+    const rem = toks.slice(pos);
+    if ((rem[0]==='1'&&rem[1]==='0'&&rem[2]==='1')||
+        (rem[0]==='1'&&rem[1]==='1'&&rem[2]==='1')||
+        (rem[0]==='0'&&rem[1]==='1')) {
+      break;
+    }
+    if (toks[pos]==='0'||toks[pos]==='1') {
+      steps.push({stateId:'q3', consumed:pos+1, symbol:toks[pos], desc:`Loop (1+0)*: consumed "${toks[pos]}"`, ok:true});
+      pos++; loopCount++;
+    } else break;
+  }
+
+  // Segment C: 101, 111, or 01 â†’ q6
+  let matchedC = null;
+  for (const pat of [['1','0','1'],['1','1','1'],['0','1']]) {
+    if (toks.slice(pos,pos+pat.length).join('')===pat.join('')) {
+      matchedC = pat; break;
+    }
+  }
+  if (!matchedC) {
+    const got = toks.slice(pos,pos+3).join('')||'(end)';
+    steps.push({stateId:'q3', consumed:pos, symbol:toks[pos]||'?', desc:`Expected 101/111/01, got "${got}"`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Intermediate states for segment C
+  const cStr = matchedC.join('');
+  if (matchedC.length===3) {
+    const mid = (toks[pos]==='1') ? 'q4' : 'q5';
+    steps.push({stateId: mid, consumed:pos+2, symbol:toks[pos]+toks[pos+1], desc:`Segment C partial: "${toks[pos]+toks[pos+1]}"`, ok:true});
+  }
+  pos += matchedC.length;
+  steps.push({stateId:'q6', consumed:pos, symbol:cStr, desc:`Matched C pattern "${cStr}" (101/111/01)`, ok:true});
+
+  // Segment D: (00*+11*) â€” one or more same digit â†’ q7
+  if (pos >= n) {
+    steps.push({stateId:'q6', consumed:pos, symbol:'?', desc:'Expected 0s or 1s run, got end of input', ok:false, fail:true});
+    return steps;
+  }
+  const dChar = toks[pos];
+  if (dChar!=='0' && dChar!=='1') {
+    steps.push({stateId:'q6', consumed:pos, symbol:dChar, desc:`Invalid symbol "${dChar}"`, ok:false, fail:true});
+    return steps;
+  }
+  let dCount = 0;
+  const dStart = pos;
+  while (pos < n && toks[pos]===dChar) {
+    pos++; dCount++;
+  }
+  const dNode = dChar==='0' ? 'q9' : 'q8';
+  steps.push({stateId: dNode, consumed:pos, symbol: toks.slice(dStart,pos).join(''), desc:`Segment D: ${dCount}Ã— "${dChar}" run`, ok:true});
+
+  // Segment E: (1+0+11) â€” 1, 0, or 11 at end
+  if (pos >= n) {
+    steps.push({stateId: dNode, consumed:pos, symbol:'?', desc:'Expected final 0, 1, or 11 â€” got end of input', ok:false, fail:true});
+    return steps;
+  }
+  let matchedE = null;
+  const eTarget = 'q13';
+  for (const pat of [['1','1'],['1'],['0']]) {
+    if (toks.slice(pos,pos+pat.length).join('')===pat.join('')) {
+      matchedE = pat; break;
+    }
+  }
+  if (!matchedE) {
+    steps.push({stateId: dNode, consumed:pos, symbol:toks[pos], desc:`Expected 1, 0, or 11, got "${toks[pos]}"`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Intermediate for segment E
+  const midE = dChar==='0' ? 'q12' : (dChar==='1' ? 'q11' : 'q10');
+  steps.push({stateId: midE, consumed: pos+matchedE.length, symbol: matchedE.join(''), desc:`Segment E entry: "${matchedE.join('')}"`, ok:true});
+  pos += matchedE.length;
+
+  if (pos < n) {
+    steps.push({stateId: midE, consumed:pos, symbol:toks[pos], desc:`Leftover input "${toks.slice(pos).join('')}" â€” rejected`, ok:false, fail:true});
+    return steps;
+  }
+
+  steps.push({stateId:'q13', consumed:pos, symbol:matchedE.join(''), desc:'All segments matched â€” accepted!', ok:true, accept:true});
+  return steps;
+}
+
+function simulatePDA2(toks) {
+  const steps = [];
+  const n = toks.length;
+  let pos = 0;
+
+  steps.push({stateId:'q0', consumed:0, symbol:null, desc:'Start state', ok:true, isStart:true});
+
+  // Segment A: single a or b â†’ q1
+  if (pos < n && (toks[pos]==='a'||toks[pos]==='b')) {
+    steps.push({stateId:'q1', consumed:1, symbol:toks[pos], desc:`Matched first symbol "${toks[pos]}"`, ok:true});
+    pos++;
+  } else {
+    steps.push({stateId:'q0', consumed:0, symbol:toks[pos]||'?', desc:`Expected a or b, got "${toks[pos]||'empty'}"`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Segment B: (a+b)* one-or-more to build toward aa/bb â†’ q2/q3
+  // Go into q2 or q3 based on first char
+  const firstLoop = toks[pos];
+  if (!firstLoop || (firstLoop!=='a'&&firstLoop!=='b')) {
+    steps.push({stateId:'q1', consumed:pos, symbol:toks[pos]||'?', desc:`Expected more symbols for (a+b)* segment`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Find aa or bb pattern
+  let foundDouble = -1;
+  let doubleChar = null;
+  for (let i=pos; i<n-1; i++) {
+    if (toks[i]===toks[i+1] && (toks[i]==='a'||toks[i]==='b')) {
+      foundDouble = i; doubleChar = toks[i]; break;
+    }
+  }
+  if (foundDouble === -1) {
+    steps.push({stateId:'q1', consumed:pos, symbol:'?', desc:'No aa or bb found in remaining input â€” rejected', ok:false, fail:true});
+    return steps;
+  }
+
+  // Enter loop states
+  const loopNode = toks[pos]==='a' ? 'q2' : 'q3';
+  steps.push({stateId: loopNode, consumed:pos+1, symbol:toks[pos], desc:`Enter (a+b)* loop with "${toks[pos]}"`, ok:true});
+  pos++;
+
+  while (pos < foundDouble) {
+    const ln = toks[pos]==='a'?'q2':'q3';
+    steps.push({stateId: ln, consumed:pos+1, symbol:toks[pos], desc:`Loop (a+b)*: "${toks[pos]}"`, ok:true});
+    pos++;
+  }
+
+  // Segment C: aa or bb â†’ q4
+  const cPat = doubleChar+doubleChar;
+  const cNode = doubleChar==='a'?'q2':'q3';
+  steps.push({stateId: cNode, consumed:pos+2, symbol:cPat, desc:`Matched C: "${cPat}" (aa or bb)`, ok:true});
+  pos+=2;
+
+  // Segment D: ab or ba â†’ q5 or q6
+  if (pos+1 >= n) {
+    steps.push({stateId:'q4', consumed:pos, symbol:'?', desc:`Expected ab or ba, got end of input`, ok:false, fail:true});
+    return steps;
+  }
+  steps.push({stateId:'q4', consumed:pos, symbol:toks[pos], desc:`Into q4 before ab/ba`, ok:true});
+
+  const dp = toks[pos]+toks[pos+1];
+  if (dp==='ab'||dp==='ba') {
+    const dNode = dp[0]==='a'?'q5':'q6';
+    steps.push({stateId: dNode, consumed:pos+2, symbol:dp, desc:`Matched D: "${dp}" (ab or ba)`, ok:true});
+    pos+=2;
+  } else {
+    steps.push({stateId:'q4', consumed:pos, symbol:dp, desc:`Expected ab or ba, got "${dp}"`, ok:false, fail:true});
+    return steps;
+  }
+
+  // Segment E: (a+b)* then look for aba or baa
+  // Find aba or baa at end
+  const tail3 = toks.slice(n-3).join('');
+  const tail2 = toks.slice(n-2).join('');
+  let endPat = null;
+  if (tail3==='aba'||tail3==='baa') endPat = tail3;
+  if (!endPat) {
+    steps.push({stateId:'q7', consumed:pos, symbol:'?', desc:`No aba or baa found at end of string`, ok:false, fail:true});
+    return steps;
+  }
+  const endStart = n-endPat.length;
+
+  // Feed q7 loop
+  if (pos < endStart) {
+    steps.push({stateId:'q7', consumed:pos, symbol:toks[pos], desc:`Enter (a+b)* pre-final loop`, ok:true});
+    while (pos < endStart) {
+      steps.push({stateId:'q7', consumed:pos+1, symbol:toks[pos], desc:`Loop (a+b)*: "${toks[pos]}"`, ok:true});
+      pos++;
+    }
+  }
+
+  // Enter q8 for final segment
+  steps.push({stateId:'q8', consumed:pos, symbol:toks[pos], desc:`Entering final segment from q8`, ok:true});
+
+  // Segment F: aba or baa
+  const fNode1 = endPat[0]==='a'?'q9':'q10';
+  steps.push({stateId: fNode1, consumed:pos+2, symbol:endPat.slice(0,2), desc:`Final pattern "${endPat[0]+endPat[1]}" matched`, ok:true});
+  pos+=2;
+  steps.push({stateId:'q11', consumed:pos+1, symbol:endPat[2], desc:`Final char "${endPat[2]}" â€” completing ${endPat}`, ok:true});
+  pos++;
+
+  if (pos < n) {
+    steps.push({stateId:'q11', consumed:pos, symbol:toks[pos], desc:`Leftover: "${toks.slice(pos).join('')}" â€” rejected`, ok:false, fail:true});
+    return steps;
+  }
+
+  steps.push({stateId:'q12', consumed:pos, symbol:endPat, desc:`All segments matched â€” accepted!`, ok:true, accept:true});
+  return steps;
+}
+
+/* â”€â”€â”€ RENDERING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+let currentPDA = PDA1;
+let simSteps = [];
+let currentStep = -1;
+let animReq = null;
+let activeStateId = null;
+let errorStateId = null;
+
+function getStatePos(state, W, H) {
+  const PAD = 60;
+  return {
+    x: PAD + state.x * (W - PAD*2),
+    y: PAD + state.y * (H - PAD*2)
+  };
+}
+
+function drawArrow(x1,y1,x2,y2,label,curve,W,H,col,selfLoop) {
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.fillStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.font = `500 11px 'JetBrains Mono', monospace`;
+
+  if (selfLoop) {
+    const r = 18;
+    ctx.beginPath();
+    ctx.arc(x1, y1-24, r, 0.3, Math.PI*1.7);
+    ctx.stroke();
+    // arrowhead
+    ctx.beginPath();
+    ctx.moveTo(x1+12, y1-10);
+    ctx.lineTo(x1+7, y1-4);
+    ctx.lineTo(x1+16, y1-5);
+    ctx.fill();
+    ctx.fillText(label, x1+18, y1-34);
+    ctx.restore();
+    return;
+  }
+
+  const c = curve || 0;
+  if (Math.abs(c) < 0.01) {
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const ux = dx/len, uy = dy/len;
+    const r = 16;
+    const sx = x1+ux*r, sy = y1+uy*r;
+    const ex = x2-ux*r, ey = y2-uy*r;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    const angle = Math.atan2(ey-sy, ex-sx);
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex-8*Math.cos(angle-0.4), ey-8*Math.sin(angle-0.4));
+    ctx.lineTo(ex-8*Math.cos(angle+0.4), ey-8*Math.sin(angle+0.4));
+    ctx.closePath(); ctx.fill();
+    const mx=(sx+ex)/2, my=(sy+ey)/2;
+    const perp = {x:-uy*6, y:ux*6};
+    ctx.fillStyle = col;
+    ctx.fillText(label, mx+perp.x-ctx.measureText(label).width/2, my+perp.y);
+  } else {
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const dx=x2-x1, dy=y2-y1;
+    const len=Math.sqrt(dx*dx+dy*dy);
+    const cpx=mx+(-dy/len)*c*len*0.5;
+    const cpy=my+(dx/len)*c*len*0.5;
+    const r=16;
+    const a1=Math.atan2(y1-cpy,x1-cpx);
+    const a2=Math.atan2(y2-cpy,x2-cpx);
+    const sx=x1+Math.cos(a1+Math.PI)*(-r), sy=y1+Math.sin(a1+Math.PI)*(-r);
+    // approximate
+    const t=0.95;
+    const qx=(1-t)*(1-t)*x1+2*(1-t)*t*cpx+t*t*x2;
+    const qy=(1-t)*(1-t)*y1+2*(1-t)*t*cpy+t*t*y2;
+    const angle=Math.atan2(y2-qy, x2-qx);
+    const ex2=x2-Math.cos(angle)*r, ey2=y2-Math.sin(angle)*r;
+    const sx2=x1+Math.cos(Math.atan2(cpy-y1,cpx-x1))*r;
+    const sy2=y1+Math.sin(Math.atan2(cpy-y1,cpx-x1))*r;
+    ctx.beginPath();
+    ctx.moveTo(sx2,sy2);
+    ctx.quadraticCurveTo(cpx,cpy,ex2,ey2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ex2,ey2);
+    ctx.lineTo(ex2-8*Math.cos(angle-0.4),ey2-8*Math.sin(angle-0.4));
+    ctx.lineTo(ex2-8*Math.cos(angle+0.4),ey2-8*Math.sin(angle+0.4));
+    ctx.closePath(); ctx.fill();
+    const lx=(sx2+ex2)/2+(-Math.sin(angle))*c*30;
+    const ly=(sy2+ey2)/2+(Math.cos(angle))*c*30;
+    ctx.fillText(label, lx-ctx.measureText(label).width/2, ly);
+  }
+  ctx.restore();
+}
+
+function drawGraph() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const states = currentPDA.states;
+  const transitions = currentPDA.transitions;
+
+  // Draw transitions
+  for (const t of transitions) {
+    const s = states.find(s=>s.id===t.from);
+    const e = states.find(s=>s.id===t.to);
+    const sp = getStatePos(s,W,H);
+    const ep = getStatePos(e,W,H);
+    const isSelf = t.from===t.to;
+    let col = '#3a3a55';
+
+    // Highlight path
+    if (currentStep >= 0) {
+      const curState = simSteps[currentStep]?.stateId;
+      const prevState = currentStep>0 ? simSteps[currentStep-1]?.stateId : null;
+      if (t.from===prevState && t.to===curState) col = '#fbbf24';
+      else if (t.from===curState || t.to===curState) col = '#4a4a70';
+    }
+
+    drawArrow(sp.x, sp.y, ep.x, ep.y, t.label, t.curve||0, W, H, col, isSelf);
+  }
+
+  // Draw start arrow
+  const startState = states.find(s=>s.start);
+  const sp = getStatePos(startState, W, H);
+  ctx.save();
+  ctx.strokeStyle = '#7c6ff7';
+  ctx.fillStyle = '#7c6ff7';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sp.x-36, sp.y);
+  ctx.lineTo(sp.x-18, sp.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sp.x-18, sp.y);
+  ctx.lineTo(sp.x-26, sp.y-5);
+  ctx.lineTo(sp.x-26, sp.y+5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Draw states
+  for (const s of states) {
+    const p = getStatePos(s,W,H);
+    const isActive = s.id === activeStateId;
+    const isError = s.id === errorStateId;
+    const r = 16;
+
+    ctx.save();
+    // Glow for active
+    if (isActive) {
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 18;
+    } else if (isError) {
+      ctx.shadowColor = '#f76f6f';
+      ctx.shadowBlur = 16;
+    }
+
+    // Fill
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    if (isActive) ctx.fillStyle = '#fbbf24';
+    else if (isError) ctx.fillStyle = '#f76f6f';
+    else if (s.accept) ctx.fillStyle = '#1a3a2a';
+    else if (s.start) ctx.fillStyle = '#1a1a35';
+    else ctx.fillStyle = '#1a1a2e';
+    ctx.fill();
+
+    ctx.strokeStyle = isActive ? '#fbbf24' : isError ? '#f76f6f' : s.accept ? '#4dd9ac' : s.start ? '#7c6ff7' : '#3a3a55';
+    ctx.lineWidth = isActive||isError ? 2.5 : 1.5;
+    ctx.stroke();
+
+    // Double ring for accept
+    if (s.accept) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r+4, 0, Math.PI*2);
+      ctx.strokeStyle = isActive ? '#fbbf24' : '#4dd9ac';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Label
+    ctx.save();
+    ctx.font = `500 10px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = isActive ? '#000' : isError ? '#fff' : s.accept ? '#4dd9ac' : '#c8c8e8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.label, p.x, p.y);
+    ctx.restore();
+  }
+}
+
+function resizeCanvas() {
+  const area = canvas.parentElement;
+  canvas.width = area.clientWidth * window.devicePixelRatio;
+  canvas.height = area.clientHeight * window.devicePixelRatio;
+  canvas.style.width = area.clientWidth + 'px';
+  canvas.style.height = area.clientHeight + 'px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  drawGraph();
+}
+
+/* â”€â”€â”€ SIM CONTROLS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+function startSim() {
+  const raw = document.getElementById('strInput').value.trim();
+  if (!raw) return;
+  const normalized = currentPDA===PDA2 ? raw.toLowerCase() : raw;
+
+  for (const c of normalized) {
+    if (!currentPDA.alphabet.has(c)) {
+      setVerdict('reject', `Invalid char "${c}"`);
+      return;
+    }
+  }
+
+  simSteps = simulate(currentPDA, normalized);
+  currentStep = -1;
+  activeStateId = null;
+  errorStateId = null;
+  buildTokenRow(normalized);
+  buildTraceList();
+  setVerdict('idle','Runningâ€¦');
+  drawGraph();
+  stepForward();
+}
+
+function stepForward() {
+  if (simSteps.length === 0) return;
+  if (currentStep < simSteps.length-1) {
+    currentStep++;
+    applyStep(currentStep);
+  }
+}
+
+function applyStep(idx) {
+  const step = simSteps[idx];
+  activeStateId = step.ok ? step.stateId : null;
+  errorStateId = (!step.ok) ? step.stateId : null;
+
+  updateTokenRow(step.consumed, !step.ok);
+  highlightTraceItem(idx);
+  drawGraph();
+
+  if (step.accept) {
+    setVerdict('accept', 'Accepted âœ“');
+  } else if (step.fail) {
+    setVerdict('reject', 'Rejected âœ—');
+  } else {
+    setVerdict('idle', `Step ${idx+1}/${simSteps.length}`);
+  }
+}
+
+function resetSim() {
+  simSteps = [];
+  currentStep = -1;
+  activeStateId = null;
+  errorStateId = null;
+  document.getElementById('strInput').value = '';
+  document.getElementById('tokensDisplay').innerHTML = '';
+  document.getElementById('traceList').innerHTML = '<div style="color:var(--text2);font-size:12px;padding:8px;font-family:var(--mono);">Enter a string and press Run.</div>';
+  setVerdict('idle','Idle');
+  drawGraph();
+}
+
+function buildTokenRow(str) {
+  const row = document.getElementById('tokensDisplay');
+  row.innerHTML = '';
+  for (let i=0; i<str.length; i++) {
+    const chip = document.createElement('span');
+    chip.className = 'token-chip';
+    chip.id = 'tc-'+i;
+    chip.textContent = str[i];
+    row.appendChild(chip);
+  }
+}
+
+function updateTokenRow(consumed, failed) {
+  const chips = document.querySelectorAll('.token-chip');
+  chips.forEach((chip,i) => {
+    chip.className = 'token-chip';
+    if (i < consumed-1) chip.classList.add('done-tok');
+    else if (i === consumed-1) chip.classList.add(failed?'fail-tok':'active-tok');
+  });
+}
+
+function buildTraceList() {
+  const list = document.getElementById('traceList');
+  list.innerHTML = '';
+  simSteps.forEach((step,idx) => {
+    const item = document.createElement('div');
+    item.className = 'trace-item';
+    item.id = 'trace-'+idx;
+    item.innerHTML = `
+      <div class="trace-step-label">Step ${idx+1}</div>
+      <div class="trace-state">${step.stateId}</div>
+      <div class="trace-desc">${step.desc}</div>
+      ${step.symbol ? `<span class="trace-symbol">${step.symbol}</span>` : ''}
+    `;
+    list.appendChild(item);
+  });
+}
+
+function highlightTraceItem(idx) {
+  document.querySelectorAll('.trace-item').forEach((el,i) => {
+    el.className = 'trace-item';
+    if (i < idx) el.classList.add('ok-trace');
+    if (i === idx) el.classList.add('active-trace');
+  });
+  const el = document.getElementById('trace-'+idx);
+  if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function setVerdict(type, msg) {
+  const pill = document.getElementById('verdictPill');
+  pill.className = 'verdict-pill ' + type;
+  pill.textContent = msg;
+}
+
+function switchPDA(n) {
+  currentPDA = n===1 ? PDA1 : PDA2;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+  document.getElementById('regexBadge').textContent = currentPDA.regex;
+  document.getElementById('strInput').placeholder = n===1 ? 'e.g. 110101001' : 'e.g. aabbababaa';
+  resetSim();
+}
+
+/* â”€â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+document.getElementById('regexBadge').textContent = PDA1.regex;
+document.getElementById('strInput').placeholder = 'e.g. 110101001';
+setVerdict('idle','Idle');
+</script>
+</body>
+</html>

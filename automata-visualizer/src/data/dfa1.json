@@ -1,0 +1,81 @@
+{
+  "nodeMap": {
+    "q0": { "id": "q0", "x": 671.3202825715698, "y": 395.39370873324555 },
+    "q1": { "id": "q1", "x": 872.7650650853607, "y": 394.68115017778086 },
+    "q2": { "id": "q2", "x": 1043.7057195412337, "y": 215.7395393258604 },
+    "q3": { "id": "q3", "x": 1053.3713641080863, "y": 563.9039666610852 },
+    "q4": { "id": "q4", "x": 1236.0602594533234, "y": 402.2272697209463 },
+    "q5": { "id": "q5", "x": 1426.7832756140506, "y": 214.7644260610272 },
+    "q6": { "id": "q6", "x": 1422.920901339859, "y": 537.309120659977 },
+    "q7": { "id": "q7", "x": 1603.8748358557125, "y": 391.51268854822877 },
+    "q8": { "id": "q8", "x": 1803.9224845064157, "y": 217.43025299361128 },
+    "q9": { "id": "q9", "x": 1797.0977398717896, "y": 566.0567698589734 },
+    "q10": { "id": "q10", "x": 2154.7867622916197, "y": 226.06048556143026 },
+    "q11": { "id": "q11", "x": 2153.6510278871583, "y": 561.5392447642166 },
+    "q12": { "id": "q12", "x": 2620.3804496709927, "y": 475.5246357980782 },
+    "q13": { "id": "q13", "x": 2319.5110961463693, "y": 75.0198611971584 },
+    "q14": { "id": "q14", "x": 2146.568958268454, "y": -88.00975868092519 }
+  },
+  "transitionMap": {
+    "q0": [{ "label": "A,B", "sourceid": "q0", "targetid": "q1" }],
+    "q1": [
+      { "label": "A", "sourceid": "q1", "targetid": "q2" },
+      { "label": "B", "sourceid": "q1", "targetid": "q3" }
+    ],
+    "q2": [
+      { "label": "A", "sourceid": "q2", "targetid": "q4" },
+      { "label": "B", "sourceid": "q2", "targetid": "q3" }
+    ],
+    "q3": [
+      { "label": "B", "sourceid": "q3", "targetid": "q4" },
+      { "label": "A", "sourceid": "q3", "targetid": "q2" }
+    ],
+    "q4": [
+      { "label": "A", "sourceid": "q4", "targetid": "q5" },
+      { "label": "B", "sourceid": "q4", "targetid": "q6" }
+    ],
+    "q5": [
+      { "label": "A", "sourceid": "q5", "targetid": "q5" },
+      { "label": "B", "sourceid": "q5", "targetid": "q7" }
+    ],
+    "q6": [
+      { "label": "B", "sourceid": "q6", "targetid": "q6" },
+      { "label": "A", "sourceid": "q6", "targetid": "q7" }
+    ],
+    "q7": [
+      { "label": "A", "sourceid": "q7", "targetid": "q8" },
+      { "label": "B", "sourceid": "q7", "targetid": "q9" }
+    ],
+    "q8": [
+      { "label": "B", "sourceid": "q8", "targetid": "q10" },
+      { "label": "A", "sourceid": "q8", "targetid": "q8" }
+    ],
+    "q9": [
+      { "label": "B", "sourceid": "q9", "targetid": "q9" },
+      { "label": "A", "sourceid": "q9", "targetid": "q11" }
+    ],
+    "q10": [
+      { "label": "B", "sourceid": "q10", "targetid": "q9" },
+      { "label": "A", "sourceid": "q10", "targetid": "q13" }
+    ],
+    "q11": [
+      { "label": "B", "sourceid": "q11", "targetid": "q10" },
+      { "label": "A", "sourceid": "q11", "targetid": "q12" }
+    ],
+    "q12": [
+      { "label": "B", "sourceid": "q12", "targetid": "q10" },
+      { "label": "A", "sourceid": "q12", "targetid": "q8" }
+    ],
+    "q13": [
+      { "label": "A", "sourceid": "q13", "targetid": "q14" },
+      { "label": "B", "sourceid": "q13", "targetid": "q10" }
+    ],
+    "q14": [
+      { "label": "B", "sourceid": "q14", "targetid": "q10" },
+      { "label": "A", "sourceid": "q14", "targetid": "q8" }
+    ]
+  },
+  "finalNodes": ["q12", "q13", "q14"],
+  "nodeNum": 15,
+  "automataType": "DFA"
+}
