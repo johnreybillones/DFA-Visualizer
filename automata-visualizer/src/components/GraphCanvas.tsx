@@ -89,6 +89,28 @@ export function GraphCanvas({
     setTransform(fitGraphToViewport(bounds, fitOptions));
   }, [dfa, viewportSize.height, viewportSize.width]);
 
+  const [controlsIdle, setControlsIdle] = useState(false);
+  const controlsTimeoutRef = useRef<number | null>(null);
+
+  const resetControlsTimer = () => {
+    setControlsIdle(false);
+    if (controlsTimeoutRef.current !== null) {
+      window.clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = window.setTimeout(() => {
+      setControlsIdle(true);
+    }, 2000);
+  };
+
+  useEffect(() => {
+    resetControlsTimer();
+    return () => {
+      if (controlsTimeoutRef.current !== null) {
+        window.clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const tokenPoint = activeLayout
     ? getPointOnEdge(
         activeLayout,
@@ -99,58 +121,63 @@ export function GraphCanvas({
   const currentNode = dfa.nodeMap[currentStateId];
 
   return (
-    <section className="panel-surface relative flex h-full min-h-[20rem] flex-col overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-outline-muted)] px-4 py-3">
-        <div>
-          <p className="label-kicker">Graph canvas</p>
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Drag to pan, zoom with the wheel, or use the controls.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Zoom out"
-            onClick={() =>
-              setTransform((current) =>
-                zoomViewportAtPoint(
-                  current,
-                  { x: viewportSize.width / 2, y: viewportSize.height / 2 },
-                  0.88,
-                  { minScale: fitOptions.minScale, maxScale: fitOptions.maxScale },
-                ),
-              )
-            }
-          >
-            -
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Zoom in"
-            onClick={() =>
-              setTransform((current) =>
-                zoomViewportAtPoint(
-                  current,
-                  { x: viewportSize.width / 2, y: viewportSize.height / 2 },
-                  1.12,
-                  { minScale: fitOptions.minScale, maxScale: fitOptions.maxScale },
-                ),
-              )
-            }
-          >
-            +
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Reset view"
-            onClick={() => setTransform(resetViewport(bounds, fitOptions))}
-          >
-            Reset
-          </button>
-        </div>
+    <section 
+      className="panel-surface relative flex h-full min-h-[20rem] flex-col overflow-hidden"
+      onPointerMove={resetControlsTimer}
+    >
+      <div 
+        className={`absolute right-4 top-4 z-10 flex gap-2 transition-opacity duration-500 ${
+          controlsIdle ? "opacity-20 hover:opacity-100" : "opacity-100"
+        }`}
+        onPointerEnter={resetControlsTimer}
+      >
+        <button
+          className="icon-button bg-[var(--color-surface-strong)]"
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => {
+            resetControlsTimer();
+            setTransform((current) =>
+              zoomViewportAtPoint(
+                current,
+                { x: viewportSize.width / 2, y: viewportSize.height / 2 },
+                0.88,
+                { minScale: fitOptions.minScale, maxScale: fitOptions.maxScale },
+              ),
+            );
+          }}
+        >
+          -
+        </button>
+        <button
+          className="icon-button bg-[var(--color-surface-strong)]"
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => {
+            resetControlsTimer();
+            setTransform((current) =>
+              zoomViewportAtPoint(
+                current,
+                { x: viewportSize.width / 2, y: viewportSize.height / 2 },
+                1.12,
+                { minScale: fitOptions.minScale, maxScale: fitOptions.maxScale },
+              ),
+            );
+          }}
+        >
+          +
+        </button>
+        <button
+          className="icon-button bg-[var(--color-surface-strong)] px-3 text-xs"
+          type="button"
+          aria-label="Reset view"
+          onClick={() => {
+            resetControlsTimer();
+            setTransform(resetViewport(bounds, fitOptions));
+          }}
+        >
+          Reset
+        </button>
       </div>
 
       <div

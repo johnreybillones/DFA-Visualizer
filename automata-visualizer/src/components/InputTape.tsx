@@ -35,12 +35,12 @@ export function InputTape({
   }, [activeIndex, symbols.length]);
 
   return (
-    <section className="grid gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <div className="flex items-center gap-3">
           <p className="label-kicker">Input Tape</p>
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Consumed {consumedCount} of {symbols.length} symbols
+          <p className="text-xs text-[var(--color-text-muted)]">
+            (Consumed {consumedCount} of {symbols.length})
           </p>
         </div>
         <span className="status-chip" data-tone={playbackMode}>

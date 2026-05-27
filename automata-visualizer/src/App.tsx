@@ -28,8 +28,8 @@ function App() {
       : controller.currentSymbolIndex;
 
   return (
-    <main className="flex h-dvh flex-col px-3 py-3 text-[var(--color-text)] sm:px-4 lg:px-6">
-      <div className="mx-auto flex h-full w-full max-w-[96rem] flex-col gap-3">
+    <main className="flex h-dvh flex-col px-2 py-2 text-[var(--color-text)] sm:px-4 lg:px-6">
+      <div className="mx-auto flex h-full w-full max-w-[96rem] flex-col gap-2">
         <TopBar
           definition={definition}
           selectedId={selectedId}
@@ -53,8 +53,8 @@ function App() {
         </div>
 
         {activeTab === "DFA" && (
-          <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 xl:flex-row">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
               <div className="min-h-0 flex-1">
                 <GraphCanvas
                   activeStep={controller.activeStep}

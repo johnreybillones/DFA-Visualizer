@@ -60,9 +60,7 @@ function getPairOffset(index: number, total: number, spread: number): number {
   return (index - (total - 1) / 2) * spread;
 }
 
-function normalizeDirectionSign(sourceId: string, targetId: string): number {
-  return sourceId.localeCompare(targetId) <= 0 ? -1 : 1;
-}
+
 
 function quadraticPoint(start: Point, control: Point, end: Point, t: number): Point {
   const oneMinusT = 1 - t;
@@ -204,8 +202,7 @@ export function getEdgeLayouts(
         y: Math.cos(angle),
       };
       const parallelOffset = getPairOffset(pairIndex, pairCount, 26);
-      const reverseOffset =
-        reverseCount > 0 ? normalizeDirectionSign(source.id, target.id) * curveOffset : 0;
+      const reverseOffset = reverseCount > 0 ? curveOffset : 0;
       const totalOffset = parallelOffset + reverseOffset;
 
       if (totalOffset === 0) {
