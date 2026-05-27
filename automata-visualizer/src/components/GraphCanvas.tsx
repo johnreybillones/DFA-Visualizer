@@ -69,6 +69,9 @@ export function GraphCanvas({
   const [acceptedNodeId, setAcceptedNodeId] = useState<string | null>(null);
   const acceptedTimerRef = useRef<number | null>(null);
 
+  // Track the dragging pointer (finger or mouse button) to support smooth single-touch panning and prevent multi-finger jump disruptions
+  const activePointerIdRef = useRef<number | null>(null);
+
   const bounds = getGraphBounds(dfa);
   const layouts = getEdgeLayouts(dfa, { nodeRadius: 30 });
   const activeLayout = findActiveLayout(layouts, activeStep);
@@ -235,14 +238,19 @@ export function GraphCanvas({
 
       <div
         ref={containerRef}
-        className="bg-graph-paper relative flex-1 overflow-hidden"
+        className="bg-graph-paper relative flex-1 overflow-hidden touch-none"
         onPointerDown={(event) => {
+          // Bind only to the first active pointer touch or mouse click
+          if (activePointerIdRef.current !== null) return;
+          
           setIsDragging(true);
+          activePointerIdRef.current = event.pointerId;
           setDragOrigin({ x: event.clientX, y: event.clientY });
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!isDragging) {
+          // Smooth panning locked specifically to the primary dragging pointer
+          if (!isDragging || event.pointerId !== activePointerIdRef.current) {
             return;
           }
 
@@ -255,10 +263,18 @@ export function GraphCanvas({
           setTransform((current) => panViewport(current, delta));
         }}
         onPointerUp={(event) => {
-          setIsDragging(false);
-          event.currentTarget.releasePointerCapture(event.pointerId);
+          if (event.pointerId === activePointerIdRef.current) {
+            setIsDragging(false);
+            activePointerIdRef.current = null;
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
         }}
-        onPointerLeave={() => setIsDragging(false)}
+        onPointerLeave={(event) => {
+          if (event.pointerId === activePointerIdRef.current) {
+            setIsDragging(false);
+            activePointerIdRef.current = null;
+          }
+        }}
         onWheel={(event) => {
           event.preventDefault();
           const rect = event.currentTarget.getBoundingClientRect();
