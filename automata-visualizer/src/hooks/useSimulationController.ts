@@ -123,7 +123,7 @@ export function useSimulationController({
   }
 
   function reset() {
-    resetInternal(inputRef.current);
+    resetInternal("");
   }
 
   useEffect(() => {

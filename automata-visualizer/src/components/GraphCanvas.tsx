@@ -94,7 +94,7 @@ export function GraphCanvas({
         activeLayout,
         playbackMode === "running" && !reducedMotion ? 0.45 : 1,
       )
-    : dfa.nodeMap[currentStateId];
+    : null;
 
   const currentNode = dfa.nodeMap[currentStateId];
 
@@ -263,10 +263,10 @@ export function GraphCanvas({
                   <text
                     fill={isActive ? "var(--color-active-edge)" : "var(--color-text)"}
                     fontFamily="var(--font-display)"
-                    fontSize="11"
+                    fontSize="20"
                     textAnchor="middle"
                     x={layout.labelPoint.x}
-                    y={layout.labelPoint.y + 4}
+                    y={layout.labelPoint.y + 5}
                   >
                     {layout.label}
                   </text>
@@ -278,6 +278,12 @@ export function GraphCanvas({
               const isCurrent = node.id === currentStateId;
               const isVisited = visitedStates.includes(node.id);
               const isFinal = dfa.finalNodes.includes(node.id);
+              const isStart = node.id === "q0";
+
+              let label = "";
+              if (isStart && isFinal) label = "±";
+              else if (isStart) label = "-";
+              else if (isFinal) label = "+";
 
               return (
                 <g
@@ -301,24 +307,14 @@ export function GraphCanvas({
                     stroke={isCurrent ? "var(--color-active-node)" : "var(--color-outline-strong)"}
                     strokeWidth={isCurrent ? 3 : 2}
                   />
-                  {isFinal ? (
-                    <circle
-                      cx="0"
-                      cy="0"
-                      r="23"
-                      fill="none"
-                      stroke="var(--color-outline-strong)"
-                      strokeWidth="2"
-                    />
-                  ) : null}
                   <text
                     fill="var(--color-text)"
                     fontFamily="var(--font-display)"
-                    fontSize="14"
+                    fontSize="32"
                     textAnchor="middle"
-                    y="5"
+                    y="9"
                   >
-                    {node.id}
+                    {label}
                   </text>
                 </g>
               );
@@ -347,7 +343,7 @@ export function GraphCanvas({
               <text
                 fill="var(--color-text-muted)"
                 fontFamily="var(--font-display)"
-                fontSize="11"
+                fontSize="14"
                 x={currentNode.x}
                 y={currentNode.y + 54}
                 textAnchor="middle"
