@@ -336,16 +336,21 @@ export function GraphCanvas({
               </feMerge>
             </filter>
 
-            {/* Layer 2: Traveling glow pulse filter */}
-            <filter id="edge-pulse-glow" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur1" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur2" />
+            {/* Layer 5: Rejected node red glow */}
+            <filter id="reject-glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="0 0 0 0 0.95  0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 1 0"
+                result="red"
+              />
+              <feGaussianBlur in="red" stdDeviation="6" result="glow" />
               <feMerge>
-                <feMergeNode in="blur2" />
-                <feMergeNode in="blur1" />
+                <feMergeNode in="glow" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+
             {/* Layer 2: Traveling glow sweep filter — large dramatic bloom */}
             <filter id="edge-pulse-glow" x="-200%" y="-200%" width="500%" height="500%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1" />
@@ -464,6 +469,11 @@ export function GraphCanvas({
               const isRejected = rejectedNodeId === node.id;
               const isAccepted = acceptedNodeId === node.id;
 
+              // Persistent final evaluation states
+              const isTerminal = playbackMode === "complete" || playbackMode === "validated";
+              const isTerminalAccepted = isTerminal && result?.isAccepted && node.id === currentStateId;
+              const isTerminalRejected = isTerminal && !result?.isAccepted && node.id === currentStateId;
+
               let label = "";
               if (isStart && isFinal) label = "±";
               else if (isStart) label = "-";
@@ -471,8 +481,8 @@ export function GraphCanvas({
 
               // Determine node stroke color
               let strokeColor = "var(--color-outline-strong)";
-              if (isAccepted) strokeColor = "var(--color-success)";
-              else if (isRejected) strokeColor = "var(--color-error)";
+              if (isAccepted || isTerminalAccepted) strokeColor = "var(--color-success)";
+              else if (isRejected || isTerminalRejected) strokeColor = "var(--color-error)";
               else if (isCurrent) strokeColor = "var(--color-active-node)";
 
               return (
@@ -506,16 +516,18 @@ export function GraphCanvas({
                     </>
                   )}
 
-                  {/* Node body — glow applied when current or accepted */}
+                  {/* Node body — glow applied when current, accepted or rejected */}
                   <g
                     className={isCurrent && !reducedMotion ? "node-enter" : undefined}
                     style={isRejected && !reducedMotion ? { animation: "node-reject-shake 400ms ease-out" } : undefined}
                     filter={
-                      isAccepted && !reducedMotion
+                      (isAccepted || isTerminalAccepted) && !reducedMotion
                         ? "url(#accept-glow)"
-                        : isCurrent && !reducedMotion
-                          ? "url(#node-glow)"
-                          : undefined
+                        : (isRejected || isTerminalRejected) && !reducedMotion
+                          ? "url(#reject-glow)"
+                          : isCurrent && !reducedMotion
+                            ? "url(#node-glow)"
+                            : undefined
                     }
                   >
                     <circle
@@ -530,16 +542,16 @@ export function GraphCanvas({
                             : "var(--color-surface-strong)"
                       }
                       stroke={strokeColor}
-                      strokeWidth={isCurrent || isAccepted || isRejected ? 3 : 2}
+                      strokeWidth={isCurrent || isAccepted || isRejected || isTerminalAccepted || isTerminalRejected ? 3 : 2}
                       style={{
                         transition: "fill 400ms ease-out, stroke 250ms ease-out, stroke-width 250ms ease-out",
                       }}
                     />
                     <text
                       fill={
-                        isAccepted
+                        (isAccepted || isTerminalAccepted)
                           ? "var(--color-success)"
-                          : isRejected
+                          : (isRejected || isTerminalRejected)
                             ? "var(--color-error)"
                             : "var(--color-text)"
                       }
@@ -621,18 +633,35 @@ export function GraphCanvas({
             ) : null}
 
             {/* "Active state" label under current node */}
-            {currentNode ? (
-              <text
-                fill="var(--color-text-muted)"
-                fontFamily="var(--font-display)"
-                fontSize="14"
-                x={currentNode.x}
-                y={currentNode.y + 54}
-                textAnchor="middle"
-              >
-                Active state
-              </text>
-            ) : null}
+            {currentNode ? (() => {
+              const isTerminal = playbackMode === "complete" || playbackMode === "validated";
+              const isTerminalAccepted = isTerminal && result?.isAccepted;
+              const isTerminalRejected = isTerminal && !result?.isAccepted;
+
+              let labelColor = "var(--color-text-muted)";
+              let labelText = "Active state";
+              if (isTerminalAccepted) {
+                labelColor = "var(--color-success)";
+                labelText = "Accepted state";
+              } else if (isTerminalRejected) {
+                labelColor = "var(--color-error)";
+                labelText = "Rejected state";
+              }
+
+              return (
+                <text
+                  fill={labelColor}
+                  fontFamily="var(--font-display)"
+                  fontSize="14"
+                  x={currentNode.x}
+                  y={currentNode.y + 54}
+                  textAnchor="middle"
+                  style={{ transition: "fill 300ms ease" }}
+                >
+                  {labelText}
+                </text>
+              );
+            })() : null}
           </g>
         </svg>
       </div>
