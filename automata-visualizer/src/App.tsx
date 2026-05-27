@@ -112,14 +112,45 @@ function App() {
         )}
 
         {activeTab === "CFG" && (
-          <div className="flex min-h-0 flex-1 items-center justify-center rounded border border-dashed border-[var(--color-outline-muted)] text-[var(--color-text-muted)]">
-            CFG Content Placeholder
+          <div className="grid grid-cols-1 gap-6 p-2 md:grid-cols-2 md:p-6 min-h-0 flex-1 overflow-y-auto content-start">
+            <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
+              <h2 className="label-kicker mb-4 text-lg">CFG 1</h2>
+              <div className="bg-[var(--color-surface-strong)] p-5 rounded font-mono text-base text-[var(--color-text)] space-y-3 tracking-wide">
+                <div>S &rarr; a A | b A</div>
+                <div>A &rarr; a A | b A | aa B | bb B</div>
+                <div>B &rarr; ab C | ba C</div>
+                <div>C &rarr; a C | b C | aba | baa</div>
+              </div>
+            </section>
+
+            <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
+              <h2 className="label-kicker mb-4 text-lg">CFG 2</h2>
+              <div className="bg-[var(--color-surface-strong)] p-5 rounded font-mono text-base text-[var(--color-text)] space-y-3 tracking-wide">
+                <div>S &rarr; 11 A | 00 A</div>
+                <div>A &rarr; 1 A | 0 A | 101 B | 111 B | 01 B</div>
+                <div>B &rarr; 0 C | 1 D</div>
+                <div>C &rarr; 0 C | 1 | 0 | 11</div>
+                <div>D &rarr; 1 D | 1 | 0 | 11</div>
+              </div>
+            </section>
           </div>
         )}
 
         {activeTab === "PDA" && (
-          <div className="flex min-h-0 flex-1 items-center justify-center rounded border border-dashed border-[var(--color-outline-muted)] text-[var(--color-text-muted)]">
-            PDA Content Placeholder
+          <div className="flex min-h-0 flex-1 flex-col gap-6 p-2 md:p-6 overflow-y-auto">
+            <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
+              <h2 className="label-kicker mb-4 text-lg">PDA 1</h2>
+              <div className="bg-[var(--color-surface-strong)] p-2 rounded flex justify-center overflow-hidden">
+                <img src="/pda-1.png" alt="PDA 1 Flowchart" className="max-w-full object-contain max-h-[800px] rounded" />
+              </div>
+            </section>
+
+            <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
+              <h2 className="label-kicker mb-4 text-lg">PDA 2</h2>
+              <div className="bg-[var(--color-surface-strong)] p-2 rounded flex justify-center overflow-hidden">
+                <img src="/pda-2.png" alt="PDA 2 Flowchart" className="max-w-full object-contain max-h-[800px] rounded" />
+              </div>
+            </section>
           </div>
         )}
       </div>
