@@ -67,7 +67,7 @@ function App() {
                 />
               </div>
 
-              <div className="shrink-0">
+              <div className="shrink-0 min-w-0">
                 <InputTape
                   activeIndex={activeTapeIndex}
                   consumedCount={controller.traceSteps.length}
