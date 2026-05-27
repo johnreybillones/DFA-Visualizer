@@ -28,15 +28,15 @@ function App() {
       : controller.currentSymbolIndex;
 
   return (
-    <main className="flex h-dvh flex-col px-2 py-2 text-[var(--color-text)] sm:px-4 lg:px-6">
-      <div className="mx-auto flex h-full w-full max-w-[96rem] flex-col gap-2">
+    <main className="flex min-h-dvh xl:h-dvh flex-col px-2 py-2 text-[var(--color-text)] sm:px-4 lg:px-6">
+      <div className="mx-auto flex xl:h-full w-full max-w-[96rem] flex-col gap-2">
         <TopBar
           definition={definition}
           selectedId={selectedId}
           onChange={(id) => setSelectedId(id)}
         />
 
-        <div className="flex gap-4 border-b border-[var(--color-outline-muted)] px-2">
+        <div className="sticky top-0 z-20 flex gap-4 border-b border-[var(--color-outline-muted)] bg-[var(--color-background)] px-2 pt-2">
           {(["DFA", "CFG", "PDA"] as const).map((tab) => (
             <button
               key={tab}
@@ -53,9 +53,9 @@ function App() {
         </div>
 
         {activeTab === "DFA" && (
-          <div className="flex min-h-0 flex-1 flex-col gap-2 xl:flex-row">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-              <div className="min-h-0 flex-1">
+          <div className="flex xl:min-h-0 xl:flex-1 flex-col gap-2 xl:flex-row">
+            <div className="flex xl:min-h-0 min-w-0 xl:flex-1 flex-col gap-2">
+              <div className="h-[26rem] xl:h-auto xl:flex-1">
                 <GraphCanvas
                   activeStep={controller.activeStep}
                   currentStateId={controller.currentStateId}
@@ -78,7 +78,7 @@ function App() {
               </div>
             </div>
 
-            <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto xl:w-[22rem]">
+            <aside className="flex w-full shrink-0 flex-col gap-3 xl:overflow-y-auto xl:w-[22rem]">
               <ControlPanel
                 alphabet={definition.alphabet}
                 error={controller.playbackMode === "invalid" ? controller.result?.error ?? null : null}
@@ -113,7 +113,7 @@ function App() {
         )}
 
         {activeTab === "CFG" && (
-          <div className="grid grid-cols-1 gap-6 p-2 md:grid-cols-2 md:p-6 min-h-0 flex-1 overflow-y-auto content-start">
+          <div className="grid grid-cols-1 gap-6 p-2 md:grid-cols-2 md:p-6 xl:min-h-0 xl:flex-1 xl:overflow-y-auto content-start">
             <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
               <h2 className="label-kicker mb-4 text-lg">CFG 1</h2>
               <div className="bg-[var(--color-surface-strong)] p-5 rounded font-mono text-base text-[var(--color-text)] space-y-3 tracking-wide">
@@ -138,7 +138,7 @@ function App() {
         )}
 
         {activeTab === "PDA" && (
-          <div className="flex min-h-0 flex-1 flex-col gap-6 p-2 md:p-6 overflow-y-auto">
+          <div className="flex xl:min-h-0 xl:flex-1 flex-col gap-6 p-2 md:p-6 xl:overflow-y-auto">
             <section className="panel-surface flex flex-col p-6 rounded-lg border border-[var(--color-outline-muted)]">
               <h2 className="label-kicker mb-4 text-lg">PDA 1</h2>
               <div className="bg-[var(--color-surface-strong)] p-2 rounded flex justify-center overflow-hidden">
