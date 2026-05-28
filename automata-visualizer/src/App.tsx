@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ControlPanel } from "./components/ControlPanel";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { InputTape } from "./components/InputTape";
@@ -10,15 +10,35 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { useSimulationController } from "./hooks/useSimulationController";
 import type { DfaId } from "./types/dfa";
 
+const CUSTOM_INPUT_SLOTS = 5;
+
 function App() {
   const [selectedId, setSelectedId] = useState<DfaId>("regex1");
   const [activeTab, setActiveTab] = useState<"DFA" | "CFG" | "PDA">("DFA");
+  const [customInputs, setCustomInputs] = useState<string[]>(() =>
+    Array.from({ length: CUSTOM_INPUT_SLOTS }, () => ""),
+  );
   const definition = automataCatalog[selectedId];
   const reducedMotion = usePrefersReducedMotion();
   const controller = useSimulationController({
     definition,
     reducedMotion,
   });
+
+  useEffect(() => {
+    setCustomInputs(Array.from({ length: CUSTOM_INPUT_SLOTS }, () => ""));
+  }, [selectedId]);
+
+  function handleCustomInputChange(index: number, value: string) {
+    setCustomInputs((currentInputs) =>
+      currentInputs.map((entry, entryIndex) => (entryIndex === index ? value : entry)),
+    );
+  }
+
+  function handleCustomInputRun(value: string) {
+    controller.setInput(value);
+    controller.run();
+  }
 
   const activeTapeIndex =
     controller.playbackMode === "running" &&
@@ -86,9 +106,12 @@ function App() {
                   accepted: definition.acceptedExamples,
                   rejected: definition.rejectedExamples,
                 }}
+                customInputs={customInputs}
                 input={controller.input}
                 playbackMode={controller.playbackMode}
                 speed={controller.speed}
+                onCustomInputChange={handleCustomInputChange}
+                onCustomInputRun={handleCustomInputRun}
                 onExampleClick={(value) => controller.setInput(value)}
                 onInputChange={(value) => controller.setInput(value)}
                 onPause={() => controller.pause()}

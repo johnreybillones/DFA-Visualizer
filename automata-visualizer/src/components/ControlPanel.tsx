@@ -3,6 +3,7 @@ import type { PlaybackMode } from "../hooks/useSimulationController";
 interface ControlPanelProps {
   input: string;
   alphabet: string[];
+  customInputs: string[];
   examples: {
     accepted: string[];
     rejected: string[];
@@ -10,6 +11,8 @@ interface ControlPanelProps {
   error: string | null;
   playbackMode: PlaybackMode;
   speed: number;
+  onCustomInputChange: (index: number, value: string) => void;
+  onCustomInputRun: (value: string) => void;
   onInputChange: (value: string) => void;
   onValidate: () => void;
   onRun: () => void;
@@ -23,10 +26,13 @@ interface ControlPanelProps {
 export function ControlPanel({
   input,
   alphabet,
+  customInputs,
   examples,
   error,
   playbackMode,
   speed,
+  onCustomInputChange,
+  onCustomInputRun,
   onInputChange,
   onValidate,
   onRun,
@@ -102,6 +108,50 @@ export function ControlPanel({
           >
             Reset
           </button>
+        </div>
+      </section>
+
+      <section className="panel-section">
+        <div className="space-y-2">
+          <p className="label-kicker">Custom strings</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Save up to five strings, then click any saved value to run the DFA immediately.
+          </p>
+        </div>
+
+        <div className="grid gap-3">
+          {customInputs.map((value, index) => (
+            <label key={`custom-input-${index}`} className="grid gap-2">
+              <span className="text-sm text-[var(--color-text)]">String {index + 1}</span>
+              <input
+                className="field-input min-h-11"
+                value={value}
+                onChange={(event) => onCustomInputChange(index, event.target.value)}
+                placeholder={alphabet.join("")}
+              />
+            </label>
+          ))}
+        </div>
+
+        <div className="grid gap-2">
+          <span className="text-xs uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            Click to run
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {customInputs
+              .filter((value) => value.trim().length > 0)
+              .map((value, index) => (
+                <button
+                  key={`custom-run-${index}-${value}`}
+                  aria-label={`Run custom string ${index + 1}: ${value}`}
+                  className="tag-button"
+                  type="button"
+                  onClick={() => onCustomInputRun(value)}
+                >
+                  {value}
+                </button>
+              ))}
+          </div>
         </div>
       </section>
 
